@@ -226,4 +226,45 @@ function generarWhatsApp() {
 
     cerrarModalEntrega();
     window.open(`https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
+
+    // Registrar pedido en Google Sheet
+    registrarPedido({
+        nombre,
+        direccion: dirFinal,
+        horario,
+        notas,
+        items: carrito.map(item => {
+            const p = productos.find(x => x.id === item.id);
+            return {
+                nombre: item.nombre,
+                cantidad: item.cantidad,
+                precio: p ? calcularPrecio(p, item.cantidad) : 0
+            };
+        }),
+        total: descuentos.totalFinal || totalSinDescuento,
+        envio: envioCliente.calculado ? envioCliente.costo : 0
+    });
+}
+
+async function registrarPedido(pedido) {
+    try {
+        const payload = {
+            _key: ADMIN_SECRET,
+            _accion: 'registrarPedido',
+            fecha: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Mendoza' }),
+            nombre: pedido.nombre || 'Sin nombre',
+            direccion: pedido.direccion || '',
+            horario: pedido.horario || '',
+            notas: pedido.notas || '',
+            items: pedido.items.map(i => `${i.cantidad}x ${i.nombre} ($${i.precio.toLocaleString('es-AR')})`).join(' | '),
+            total: pedido.total,
+            envio: pedido.envio,
+            totalConEnvio: pedido.total + pedido.envio
+        };
+        const url = APPS_SCRIPT_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
+        await fetch(url, { method: 'GET' });
+        console.log('✅ Pedido registrado en Sheet');
+    } catch (err) {
+        console.warn('⚠ No se pudo registrar el pedido:', err.message);
+    }
 }
