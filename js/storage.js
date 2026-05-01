@@ -107,16 +107,17 @@ async function cargarConfigRemota() {
 
 async function guardarConfigRemota(configParcial) {
     try {
-        const params = new URLSearchParams();
-        params.append('payload', JSON.stringify({ ...configParcial, _key: ADMIN_SECRET }));
-        await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        });
-        console.log('✅ Config enviada al Sheet');
-        return true;
+        const payload = JSON.stringify({ ...configParcial, _key: ADMIN_SECRET });
+        const url = APPS_SCRIPT_URL + '?payload=' + encodeURIComponent(payload);
+        const response = await fetch(url, { method: 'GET' });
+        const data = await response.json();
+        if (data.ok) {
+            console.log('✅ Config guardada en Sheet:', data.actualizadas);
+            toast('✅ Configuración guardada en Sheet', 'success');
+        } else {
+            console.error('❌ Error del script:', data.error);
+        }
+        return data.ok;
     } catch (err) {
         console.error('❌ Error al guardar config:', err.message);
         return false;
