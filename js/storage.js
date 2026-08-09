@@ -127,6 +127,23 @@ async function guardarConfigRemota(configParcial) {
 // ============================================
 // CARGA DIFERIDA DE LIBRERÍAS (solo admin)
 // ============================================
+let _papaParseCargada = false;
+
+// Carga SOLO PapaParse. Se usa para el flujo público (productos, folleto)
+// que corre en cada visita: no debe depender de SheetJS/XLSX, que es pesado
+// y solo hace falta para importar/exportar Excel en el panel de admin.
+async function cargarPapaParse() {
+    if (_papaParseCargada || typeof Papa !== 'undefined') { _papaParseCargada = true; return; }
+    await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('No se pudo cargar PapaParse'));
+        document.head.appendChild(s);
+    });
+    _papaParseCargada = true;
+}
+
 let _libreriasAdminCargadas = false;
 
 async function cargarLibreriasAdmin() {
